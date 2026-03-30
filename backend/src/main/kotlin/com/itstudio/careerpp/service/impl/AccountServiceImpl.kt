@@ -3,6 +3,7 @@ package com.itstudio.careerpp.service.impl
 import com.baomidou.mybatisplus.core.toolkit.Wrappers
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl
 import com.itstudio.careerpp.entity.dto.Account
+import com.itstudio.careerpp.entity.dto.EmailVerificationMsg
 import com.itstudio.careerpp.entity.vo.request.EmailRegisterVO
 import com.itstudio.careerpp.entity.vo.request.PasswordResetVO
 import com.itstudio.careerpp.mapper.AccountMapper
@@ -19,6 +20,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
+import reactor.core.scheduler.Schedulers
 import java.time.Duration
 
 @Service
@@ -57,12 +59,8 @@ class AccountServiceImpl(
         return verifyLimit(ip).flatMap { allowed ->
             if (allowed) {
                 val code = (100000..999999).random().toString()
-                val data = mapOf(
-                    "type" to type,
-                    "email" to email,
-                    "code" to code
-                )
-
+                val data = EmailVerificationMsg(email, type, code)
+                    
                 Mono.fromRunnable<Void> {
                     amqpTemplate.convertAndSend("mail", data)
                 }.then(
@@ -72,7 +70,7 @@ class AccountServiceImpl(
                             code,
                             Duration.ofMinutes(3)
                         )
-                ).thenReturn("")
+                ).thenReturn("").subscribeOn(Schedulers.boundedElastic())
             } else {
                 Mono.just("Request limit exceeded. Please try again later.")
             }

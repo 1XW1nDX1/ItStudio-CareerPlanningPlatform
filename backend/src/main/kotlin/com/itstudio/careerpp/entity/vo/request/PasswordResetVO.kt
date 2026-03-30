@@ -1,8 +1,10 @@
 package com.itstudio.careerpp.entity.vo.request
 
 import jakarta.validation.constraints.Email
+import kotlinx.serialization.Serializable
 import org.hibernate.validator.constraints.Length
 
+@Serializable
 data class PasswordResetVO(
     @param:Email
     val email: String = "",

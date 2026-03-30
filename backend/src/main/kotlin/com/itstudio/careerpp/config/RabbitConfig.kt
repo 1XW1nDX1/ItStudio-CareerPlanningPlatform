@@ -13,7 +13,6 @@ import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.amqp.autoconfigure.SimpleRabbitListenerContainerFactoryConfigurer
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import kotlin.reflect.full.createType
 
 @Configuration
 class RabbitConfig {
@@ -22,10 +21,9 @@ class RabbitConfig {
     fun messageConverter(@Qualifier("kotlinxSerializationJson") json: Json): MessageConverter =
         object : AbstractMessageConverter() {
             override fun createMessage(obj: Any, messageProperties: MessageProperties): Message {
-                val jsonString = json.encodeToString(
-                    json.serializersModule.serializer(obj::class.createType()),
-                    obj
-                )
+                val serializer = json.serializersModule.serializer(obj::class.java)
+                val jsonString = json.encodeToString(serializer, obj)
+
                 val bytes = jsonString.toByteArray(Charsets.UTF_8)
                 messageProperties.contentType = MessageProperties.CONTENT_TYPE_JSON
                 messageProperties.contentLength = bytes.size.toLong()
