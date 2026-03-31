@@ -10,11 +10,11 @@
 }
 ```
 
-接下来将省略`/api/`并只给出`T`的类声明
+接下来将省略`/api`并只给出`T`的类声明
 
 当`"code"`不是`200`时，`"data"`必定为`null`
 
-部分`api/test`的返回值不遵循上述格式
+部分`/api/test`的返回值不遵循上述格式
 
 ## /auth
 
@@ -70,6 +70,31 @@ data：
 ```
 null
 ```
+
+### /register
+
+Authorization: 无
+
+key: 无
+
+data：email, code, username, password
+
+```
+null
+```
+
+### /reset
+
+Authorization: 无
+
+key: email, code, password
+
+data：
+
+```
+null
+```
+
 
 ## /test
 
