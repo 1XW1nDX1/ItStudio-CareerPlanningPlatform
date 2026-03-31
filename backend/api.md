@@ -18,7 +18,7 @@
 
 ## /auth
 
-### /login
+### POST /login
 
 Authorization: 无
 
@@ -35,7 +35,7 @@ data：
 }
 ```
 
-### /logout
+### GET /logout
 
 Authorization: Bearer $Token
 
@@ -47,7 +47,7 @@ data：
 null
 ```
 
-### /ask-code?email=******&type=register
+### GET /ask-code?email=******&type=register
 
 Authorization: 无
 
@@ -59,7 +59,7 @@ data：
 null
 ```
 
-### /ask-code?email=******&type=reset
+### GET /ask-code?email=******&type=reset
 
 Authorization: 无
 
@@ -71,7 +71,7 @@ data：
 null
 ```
 
-### /register
+### POST /register
 
 Authorization: 无
 
@@ -83,7 +83,7 @@ data：email, code, username, password
 null
 ```
 
-### /reset
+### POST /reset
 
 Authorization: 无
 
@@ -95,10 +95,24 @@ data：
 null
 ```
 
+### GET /relogin
+
+Authorization: Bearer $Token
+
+key: 无
+
+data：
+
+```
+{
+    "token": sting,
+    "expire": time
+}
+```
 
 ## /test
 
-### /hello
+### GET /hello
 
 Authorization: Bearer $Token
 

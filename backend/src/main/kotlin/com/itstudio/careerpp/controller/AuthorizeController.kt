@@ -59,6 +59,16 @@ class AuthorizeController(
             }
     }
 
+    @GetMapping("/relogin")
+    fun relogin(exchange: ServerWebExchange): Mono<RestBean<Any?>> {
+        logger.info("Trying to relogin")
+        val authorization = exchange.request.headers.getFirst("Authorization")
+        return service
+            .jwtTokenRelogin(authorization)
+            ?.map { RestBean.success(it) }
+            ?: Mono.just(messageHandler("Please login with password."))
+    }
+
     private fun messageHandler(wrongMessage: String): RestBean<Any?> {
         return if (wrongMessage.isBlank()) {
             RestBean.success()

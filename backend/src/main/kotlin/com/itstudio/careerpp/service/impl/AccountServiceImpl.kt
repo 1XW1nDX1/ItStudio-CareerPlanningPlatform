@@ -6,6 +6,7 @@ import com.itstudio.careerpp.entity.dto.Account
 import com.itstudio.careerpp.entity.dto.EmailVerificationMsg
 import com.itstudio.careerpp.entity.vo.request.EmailRegisterVO
 import com.itstudio.careerpp.entity.vo.request.PasswordResetVO
+import com.itstudio.careerpp.entity.vo.response.ReloginVO
 import com.itstudio.careerpp.mapper.AccountMapper
 import com.itstudio.careerpp.service.AccountService
 import com.itstudio.careerpp.utils.Const
@@ -60,7 +61,7 @@ class AccountServiceImpl(
             if (allowed) {
                 val code = (100000..999999).random().toString()
                 val data = EmailVerificationMsg(email, type, code)
-                    
+
                 Mono.fromRunnable<Void> {
                     amqpTemplate.convertAndSend("mail", data)
                 }.then(
@@ -149,6 +150,20 @@ class AccountServiceImpl(
                 }
             }
         }
+    }
+
+    override fun jwtTokenRelogin(headerToken: String?): Mono<ReloginVO>? {
+        val user = jwtUtils.resolveJwt(headerToken?.substring("Bearer ".length))
+            ?.let { jwtUtils.toUser(it) }
+            ?: return null
+        val accountMono = findAccountByNameOrEmail(user.username)
+        val voMono = accountMono.map {
+            ReloginVO(
+                jwtUtils.createJwt(user, it.id!!, it.username),
+                jwtUtils.expiresTime().toInstant().toString()
+            )
+        }
+        return voMono
     }
 
     override fun invalidateJwt(headerToken: String?): Boolean {
