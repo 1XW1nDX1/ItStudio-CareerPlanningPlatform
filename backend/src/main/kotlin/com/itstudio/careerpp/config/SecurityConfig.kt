@@ -134,18 +134,18 @@ class SecurityConfig(
             }
         }
     }
-}
+    
+    private inline fun <reified T> writeJsonResponse(
+        exchange: ServerWebExchange,
+        status: HttpStatus,
+        body: RestBean<T>
+    ): Mono<Void> {
+        val response = exchange.response
+        response.statusCode = status
+        response.headers.contentType = MediaType.APPLICATION_JSON
 
-internal inline fun <reified T> writeJsonResponse(
-    exchange: ServerWebExchange,
-    status: HttpStatus,
-    body: RestBean<T>
-): Mono<Void> {
-    val response = exchange.response
-    response.statusCode = status
-    response.headers.contentType = MediaType.APPLICATION_JSON
-
-    val jsonString = Json.encodeToJsonElement(body).toString()
-    val buffer = response.bufferFactory().wrap(jsonString.toByteArray())
-    return response.writeWith(Mono.just(buffer))
+        val jsonString = Json.encodeToJsonElement(body).toString()
+        val buffer = response.bufferFactory().wrap(jsonString.toByteArray())
+        return response.writeWith(Mono.just(buffer))
+    }
 }

@@ -2,6 +2,7 @@ package com.itstudio.careerpp.entity
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import reactor.core.publisher.Mono
 
 @Serializable
 data class RestBean<T>(
@@ -33,9 +34,25 @@ data class RestBean<T>(
             val formatMessage = if (message.isBlank()) "" else ": $message"
             return failure(400, null, "Logout Failed$formatMessage")
         }
-    }
-}
+        
+        inline fun <reified T> RestBean<T>.toJsonString(): String {
+            return Json.encodeToString(this)
+        }
 
-inline fun <reified T> RestBean<T>.toJsonString(): String {
-    return Json.encodeToString(this)
+        fun just(mono: Mono<out Any>): Mono<RestBean<Any?>> {
+            return mono.map { value ->
+                when (value) {
+                    is String -> {
+                        if (value.isBlank()) {
+                            this.success()
+                        } else {
+                            this.failure(data = null, message = value)
+                        }
+                    }
+
+                    else -> this.success(value)
+                }
+            }
+        }
+    }
 }

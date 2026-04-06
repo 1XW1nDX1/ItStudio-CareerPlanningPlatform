@@ -1,7 +1,7 @@
 spring:
   webflux:
     base-path: /
-  
+
   mail:
     host: smtp.qq.com
     username: 2205632953@qq.com
@@ -36,3 +36,7 @@ spring:
 
 mybatis-plus:
   type-handlers-package: com.itstudio.careerpp.config
+
+app:
+  file:
+    direction: /root/temp/saveFileTest

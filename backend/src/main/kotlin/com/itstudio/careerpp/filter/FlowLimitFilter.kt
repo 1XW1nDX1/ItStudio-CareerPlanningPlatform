@@ -1,7 +1,7 @@
 package com.itstudio.careerpp.filter
 
 import com.itstudio.careerpp.entity.RestBean
-import com.itstudio.careerpp.entity.toJsonString
+import com.itstudio.careerpp.entity.RestBean.Companion.toJsonString
 import com.itstudio.careerpp.utils.Const
 import org.springframework.core.annotation.Order
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate
