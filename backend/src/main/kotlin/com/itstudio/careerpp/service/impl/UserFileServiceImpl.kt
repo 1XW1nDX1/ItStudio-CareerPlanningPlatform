@@ -32,13 +32,13 @@ class UserFileServiceImpl : ServiceImpl<UserFileMapper, UserFile>(), UserFileSer
                         }
                     }
                     .filter { it }
-                    .map {
+                    .transform {
                         val uuid = UUID.randomUUID()
                         this.ktUpdate()
                             .eq(UserFile::id, account.id!!)
                             .set(fileType, uuid)
                             .update()
-                        return@map uuid
+                        Mono.just(uuid)
                     }
             }
     }
@@ -72,14 +72,14 @@ class UserFileServiceImpl : ServiceImpl<UserFileMapper, UserFile>(), UserFileSer
         Mono.just(this.query().eq("id", id).one())
 
     private fun existUserFileOne(account: Account): Mono<Boolean> {
-        return Mono.just(
+        return Mono.fromCallable {
             this.baseMapper.exists(
                 Wrappers.query<UserFile>()
                     .eq("id", account.id!!)
             )
-        )
+        }
     }
 
     private fun saveEmptyUserFile(account: Account): Mono<Boolean> =
-        Mono.just(this.save(UserFile(account.id!!)))
+        Mono.fromCallable { this.save(UserFile(account.id!!)) }
 }

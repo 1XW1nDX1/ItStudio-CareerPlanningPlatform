@@ -1,6 +1,5 @@
 package com.itstudio.careerpp.service.impl
 
-import com.baomidou.mybatisplus.core.toolkit.Wrappers
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl
 import com.itstudio.careerpp.entity.dto.Account
 import com.itstudio.careerpp.mapper.AccountMapper
@@ -31,8 +30,8 @@ class AccountServiceImpl : ServiceImpl<AccountMapper, Account>(), AccountService
     override fun findAccountByName(username: String): Mono<Account> {
         return Mono.fromCallable {
             logger.info("Find account with name $username")
-            this.query()
-                .eq("username", username)
+            this.ktQuery()
+                .eq(Account::username, username)
                 .one()
         }.flatMap { account ->
             Mono.just(account)
@@ -42,8 +41,8 @@ class AccountServiceImpl : ServiceImpl<AccountMapper, Account>(), AccountService
     override fun findAccountByEmail(email: String): Mono<Account> {
         return Mono.fromCallable {
             logger.info("Find account with email $email")
-            this.query()
-                .eq("email", email)
+            this.ktQuery()
+                .eq(Account::email, email)
                 .one()
         }.flatMap { account ->
             Mono.just(account)
@@ -58,20 +57,18 @@ class AccountServiceImpl : ServiceImpl<AccountMapper, Account>(), AccountService
     override fun existAccountByName(username: String): Mono<Boolean> {
         return Mono.fromCallable {
             logger.info("Determine if name $username exists")
-            this.baseMapper.exists(
-                Wrappers.query<Account>()
-                    .eq("username", username)
-            )
+            this.ktQuery()
+                .eq(Account::username, username)
+                .exists()
         }
     }
 
     override fun existAccountByEmail(email: String): Mono<Boolean> {
         return Mono.fromCallable {
             logger.info("Determine if email $email exists")
-            this.baseMapper.exists(
-                Wrappers.query<Account>()
-                    .eq("email", email)
-            )
+            this.ktQuery()
+                .eq(Account::email, email)
+                .exists()
         }
     }
 
@@ -83,9 +80,9 @@ class AccountServiceImpl : ServiceImpl<AccountMapper, Account>(), AccountService
 
             Mono.fromCallable {
                 logger.info("Reset password by email $email")
-                this.update()
-                    .eq("email", email)
-                    .set("password", encodedPassword)
+                this.ktUpdate()
+                    .eq(Account::email, email)
+                    .set(Account::password, encodedPassword)
                     .update()
             }.flatMap { success ->
                 if (success) {
