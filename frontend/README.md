@@ -1,6 +1,6 @@
 # React + Vite + TypeScript + Bun
 
-This frontend is built with **React 18+**, **Vite**, **TypeScript**, and **Bun** as the runtime and package manager.
+This frontend is built with **React 19**, **Vite**, **TypeScript**, and **Bun** as the runtime and package manager.
 
 ## Setup
 
