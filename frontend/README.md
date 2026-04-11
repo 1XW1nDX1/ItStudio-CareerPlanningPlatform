@@ -1,5 +1,35 @@
-# Vue 3 + Vite
+# React + Vite + TypeScript + Bun
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+This frontend is built with **React 18+**, **Vite**, **TypeScript**, and **Bun** as the runtime and package manager.
 
-Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
+## Setup
+
+Install dependencies:
+
+```bash
+bun install
+```
+
+## Development
+
+Start the dev server with HMR:
+
+```bash
+bun run dev
+```
+
+## Build
+
+Build for production:
+
+```bash
+bun run build
+```
+
+## Preview
+
+Preview the production build locally:
+
+```bash
+bun run preview
+```
