@@ -1,0 +1,28 @@
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Node
+node_modules/
+dist/
+.nuxt/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+*.pth
+
+# Java / Kotlin / Gradle
+build/
+.gradle/
+out/
+*.class
+*.jar
+
+# OS
+.DS_Store
+Thumbs.db
