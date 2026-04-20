@@ -8,11 +8,20 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     server: {
       proxy: {
-        '/api': {
+        '/api/v1/ai-chat': {
+        target: 'http://localhost:8002',
+        changeOrigin: true,
+      },
+      '/api': {
           target: env.VITE_API_BASE_URL || 'http://localhost:8080',
           changeOrigin: true,
         },
-        '/ws': {
+        '/ws/v1/ai-chat': {
+        target: 'ws://localhost:8002',
+        ws: true,
+        changeOrigin: true,
+      },
+      '/ws': {
           target: env.VITE_WS_BASE_URL || 'ws://localhost:8080',
           ws: true,
           changeOrigin: true,
