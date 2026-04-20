@@ -45,3 +45,6 @@ app:
     count: 1000
     limit-time: 3
     ban-time: 60
+
+  algorithm:
+    url: http://localhost:8001
