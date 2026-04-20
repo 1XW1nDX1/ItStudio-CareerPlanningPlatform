@@ -401,7 +401,8 @@ async def websocket_chat(
     websocket: WebSocket,
     uuid: str = Query(...),
     has_file: bool = Query(False),
-    user_id: Optional[str] = Query(None)
+    user_id: Optional[str] = Query(None),
+    token: Optional[str] = Query(None)
 ):
     """
     WebSocket聊天端点（完全适配后端接口）
@@ -410,6 +411,7 @@ async def websocket_chat(
     - uuid: 会话唯一标识（由后端生成）
     - has_file: 是否上传了文件（true=使用Agent01，false=使用Agent02）
     - user_id: 用户ID（用于加载/保存用户画像）
+    - token: JWT认证token（用于调用后端API）
     """
     await websocket.accept()
     logger.info(f"WebSocket连接建立: uuid={uuid}, has_file={has_file}, user_id={user_id}")
@@ -496,12 +498,36 @@ async def websocket_chat(
                 )
 
                 full_response = ""
+                in_update_block = False  # 标记是否在更新指令块内
+                update_buffer = ""  # 缓存更新指令内容
+
                 async for chunk in stream:
                     if chunk.choices[0].delta.content:
                         content = chunk.choices[0].delta.content
                         full_response += content
-                        # 流式发送给前端
-                        await websocket.send_text(content)
+
+                        # 检测更新指令的开始和结束
+                        if "[UPDATE_RESUME]" in content:
+                            in_update_block = True
+                            update_buffer += content
+                            # 只发送指令之前的内容
+                            before_tag = content.split("[UPDATE_RESUME]")[0]
+                            if before_tag:
+                                await websocket.send_text(before_tag)
+                        elif "[/UPDATE_RESUME]" in content:
+                            in_update_block = False
+                            update_buffer += content
+                            # 只发送指令之后的内容
+                            after_tag = content.split("[/UPDATE_RESUME]")[-1]
+                            if after_tag:
+                                await websocket.send_text(after_tag)
+                            update_buffer = ""
+                        elif in_update_block:
+                            # 在更新指令块内，不发送给前端
+                            update_buffer += content
+                        else:
+                            # 正常内容，发送给前端
+                            await websocket.send_text(content)
 
                 # 添加完整回复到对话历史
                 conversation_history.append({"role": "assistant", "content": full_response})
@@ -509,8 +535,8 @@ async def websocket_chat(
                 # 解析并应用简历更新指令
                 update_commands = parse_resume_update_commands(full_response)
                 if update_commands and user_id:
-                    # 异步应用更新（不阻塞对话）
-                    asyncio.create_task(apply_resume_updates(user_id, update_commands))
+                    # 异步应用更新（传递 token）
+                    asyncio.create_task(apply_resume_updates(user_id, update_commands, token))
 
                     # 从回复中移除更新指令标记，只保留对话内容
                     clean_response = re.sub(r'\[UPDATE_RESUME\].*?\[/UPDATE_RESUME\]', '', full_response, flags=re.DOTALL).strip()
