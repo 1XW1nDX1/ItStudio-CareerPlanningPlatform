@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import ShaderBackground from '../components/ui/ShaderBackground';
 import { authApi } from '../api/auto';
 
 type AuthMode = 'login' | 'register' | 'reset';
@@ -104,7 +103,6 @@ const Login: React.FC = () => {
 
     return (
         <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <ShaderBackground />
             <div className="glass-panel" style={{ zIndex: 10, width: '420px', padding: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center', animation: 'fadeIn 0.6s ease-out' }}>
                 <div className="logo-glow" style={{ width: '48px', height: '48px', marginBottom: '16px', boxShadow: '0 0 30px #0ea5e9' }}></div>
                 <h2 className="text-gradient" style={{ margin: '0 0 8px 0', fontSize: '28px', fontWeight: 800 }}>雪雪职业AI</h2>

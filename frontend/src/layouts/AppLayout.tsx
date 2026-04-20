@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import ShaderBackground from '../components/ui/ShaderBackground';
 import { authApi } from '../api/auto';
 
 const AppLayout: React.FC = () => {
@@ -23,10 +22,6 @@ const AppLayout: React.FC = () => {
 
     return (
         <div className="glass-app-layout">
-
-            {/* ================= 魔法发生的地方 ================= */}
-            <ShaderBackground />
-            {/* ================================================== */}
 
             <div className="ui-layer">
                 {/* 加上 flex 布局，为了把用户信息挤到最底部 */}
