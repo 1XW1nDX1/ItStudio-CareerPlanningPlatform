@@ -164,8 +164,8 @@ export function useAiChat(): UseAiChatReturn {
                     { role: 'ai', content: '[ 连接已断开 ] 正在重连，请稍后重试…', streaming: false },
                 ]);
             }, 300);
-            // 尝试重连
-            connectWs();
+            // 尝试重连（使用保存的 hasFile 状态）
+            connectWs(hasFileRef.current);
         }
     }, [connectWs]);
 
