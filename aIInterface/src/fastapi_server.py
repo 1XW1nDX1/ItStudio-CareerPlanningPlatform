@@ -213,7 +213,11 @@ async def new_chat():
     import uuid as uuid_lib
     new_uuid = str(uuid_lib.uuid4())
     logger.info(f"创建新会话: {new_uuid}")
-    return new_uuid
+    return {
+        "code": 200,
+        "message": "success",
+        "data": new_uuid
+    }
 
 @app.websocket("/ws/v1/ai-chat")
 async def websocket_chat(
