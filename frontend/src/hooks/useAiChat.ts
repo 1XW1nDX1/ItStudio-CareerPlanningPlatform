@@ -62,11 +62,9 @@ export function useAiChat(): UseAiChatReturn {
         if (wsRef.current && wsRef.current.readyState <= WebSocket.OPEN) {
             // 如果 hasFile 状态相同，直接返回
             if (hasFileRef.current === hasFile) {
-                console.log('⚠️ WebSocket 已连接且状态相同，跳过重连');
                 return;
             }
             // hasFile 状态不同，需要断开重连
-            console.log(`🔄 hasFile 状态变化 (${hasFileRef.current} → ${hasFile})，断开并重连`);
             intentionalClose.current = true;
             wsRef.current.close();
             wsRef.current = null;
@@ -74,7 +72,6 @@ export function useAiChat(): UseAiChatReturn {
             await new Promise(resolve => setTimeout(resolve, 100));
         }
 
-        console.log(`🔌 开始建立 WebSocket 连接 (has_file=${hasFile})`);
         setStatus('connecting');
         intentionalClose.current = false;
         hasFileRef.current = hasFile;
@@ -91,17 +88,13 @@ export function useAiChat(): UseAiChatReturn {
 
         // 获取用户 ID
         const userId = getAccountIdFromToken();
-        console.log('👤 用户 ID:', userId);
 
         // 构建 WebSocket URL
         let wsUrl = `${WS_BASE}/ws/v1/ai-chat?uuid=${encodeURIComponent(uuid)}`;
         wsUrl += `&has_file=${hasFile}`;
         if (userId !== null) {
             wsUrl += `&user_id=${userId}`;
-        } else {
-            console.warn('⚠️ 未获取到用户 ID，可能未登录或 token 无效');
         }
-        console.log('🔗 WebSocket URL:', wsUrl);
 
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;

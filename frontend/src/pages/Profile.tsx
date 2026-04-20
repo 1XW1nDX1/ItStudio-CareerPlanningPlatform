@@ -3,7 +3,6 @@ import { resumeApi } from '../api/resume';
 import { fetchResumeDetail } from '../api/mock';
 import { useAiChat } from '../hooks/useAiChat';
 import type { ResumeDetail } from '../api/types';
-import { getAccountIdFromToken } from '../utils/jwt';
 
 const ACCEPTED_TYPES = '.pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
@@ -15,17 +14,9 @@ const Profile: React.FC = () => {
     const chatEndRef = useRef<HTMLDivElement>(null);
 
     const [resumeData, setResumeData] = useState<ResumeDetail | null>(null);
-    const [debugInfo, setDebugInfo] = useState<string>('');
 
     // ===== 核心：接入 useAiChat Hook =====
     const { messages, sendMessage, status, connect } = useAiChat();
-
-    // 调试：显示用户 ID
-    useEffect(() => {
-        const userId = getAccountIdFromToken();
-        const token = localStorage.getItem('token');
-        setDebugInfo(`用户ID: ${userId ?? '未获取'} | Token: ${token ? '已设置' : '未设置'}`);
-    }, []);
 
     // 自动滚动到底部
     useEffect(() => {
@@ -40,16 +31,13 @@ const Profile: React.FC = () => {
             let parsed: ResumeDetail | null = null;
             try {
                 parsed = await resumeApi.uploadAndParse(file);
-                console.log('✅ 简历上传成功:', parsed);
-            } catch (err) {
-                console.error('❌ 简历上传失败:', err);
+            } catch {
                 // 后端解析失败时 Mock 降级
                 parsed = await fetchResumeDetail();
             }
             setResumeData(parsed);
 
             // 建立 WebSocket 连接（有简历）
-            console.log('🔌 建立 WebSocket 连接 (has_file=true)');
             connect(true);
 
             setCurrentStatus('ready');
@@ -62,7 +50,6 @@ const Profile: React.FC = () => {
     const onFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        console.log('📁 用户选择了文件:', file.name);
         e.target.value = '';
         handleUpload(file);
     };
@@ -75,7 +62,6 @@ const Profile: React.FC = () => {
 
     // 跳过上传，直接进入 AI 引导模式
     const skipToReady = () => {
-        console.log('⏭️ 用户跳过上传，直接进入 AI 引导模式');
         connect(false);
         setCurrentStatus('ready');
     };
@@ -179,19 +165,16 @@ const Profile: React.FC = () => {
                     <div className="right-copilot glass-panel">
                         <div className="panel-header">
                             <span className="title"><i className="ai-icon">✨</i> 简历辅导引擎</span>
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                <span style={{ fontSize: '11px', color: '#64748b' }}>{debugInfo}</span>
-                                <span style={{
-                                    fontSize: '12px',
-                                    fontWeight: 600,
-                                    color: statusColor[status],
-                                    background: `${statusColor[status]}18`,
-                                    padding: '4px 10px',
-                                    borderRadius: '12px',
-                                }}>
-                                    {statusLabel[status]}
-                                </span>
-                            </div>
+                            <span style={{
+                                fontSize: '12px',
+                                fontWeight: 600,
+                                color: statusColor[status],
+                                background: `${statusColor[status]}18`,
+                                padding: '4px 10px',
+                                borderRadius: '12px',
+                            }}>
+                                {statusLabel[status]}
+                            </span>
                         </div>
 
                         <div className="chat-flow">

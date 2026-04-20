@@ -88,7 +88,12 @@ def get_resume_from_redis(user_id: str) -> Optional[str]:
         import redis
         r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, decode_responses=True)
         cache_key = f"resume:text:{user_id}"
+        logger.info(f"[DEBUG] 尝试从 Redis 读取键: {cache_key}")
         resume_text = r.get(cache_key)
+        if resume_text:
+            logger.info(f"[DEBUG] Redis 命中，内容长度: {len(resume_text)}")
+        else:
+            logger.info(f"[DEBUG] Redis 未命中")
         return resume_text
     except Exception as e:
         logger.error(f"Redis 读取失败: {e}")
@@ -98,13 +103,14 @@ def get_resume_from_file(user_id: str) -> Optional[str]:
     """从磁盘读取用户的简历文件（备用方案）"""
     try:
         import pymysql
+        logger.info(f"[DEBUG] 连接数据库查询用户 {user_id} 的简历 UUID")
         # 连接数据库获取 UUID
         connection = pymysql.connect(
-            host=os.getenv("DB_HOST", "localhost"),
-            port=int(os.getenv("DB_PORT", "3306")),
-            user=os.getenv("DB_USER", "root"),
-            password=os.getenv("DB_PASSWORD", ""),
-            database=os.getenv("DB_NAME", "career_planning"),
+            host=DB_HOST,
+            port=DB_PORT,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME,
             charset='utf8mb4'
         )
 
@@ -114,25 +120,26 @@ def get_resume_from_file(user_id: str) -> Optional[str]:
             result = cursor.fetchone()
 
             if not result or not result[0]:
-                logger.warning(f"数据库中未找到用户 {user_id} 的简历 UUID")
+                logger.warning(f"[DEBUG] 数据库中未找到用户 {user_id} 的简历 UUID")
                 return None
 
             resume_uuid = result[0]
-            logger.info(f"找到用户 {user_id} 的简历 UUID: {resume_uuid}")
+            logger.info(f"[DEBUG] 查询到简历 UUID: {resume_uuid}")
 
         connection.close()
 
         # 根据 UUID 查找文件
         for ext in ['pdf', 'docx']:
             file_path = FILE_STORAGE_PATH / f"{resume_uuid}.{ext}"
+            logger.info(f"[DEBUG] 尝试读取文件: {file_path}")
             if file_path.exists():
-                logger.info(f"找到简历文件: {file_path}")
+                logger.info(f"[DEBUG] 文件存在，开始读取")
                 if ext == 'pdf':
                     return read_pdf(file_path)
                 elif ext == 'docx':
                     return read_docx(file_path)
 
-        logger.warning(f"未找到 UUID {resume_uuid} 对应的文件")
+        logger.warning(f"[DEBUG] 未找到 UUID {resume_uuid} 对应的文件")
         return None
     except Exception as e:
         logger.error(f"从数据库/文件读取简历失败: {e}", exc_info=True)
@@ -346,28 +353,28 @@ async def websocket_chat(
     resume_content = None
     if has_file:
         if not user_id:
-            logger.error("⚠️ has_file=True 但 user_id 为空，无法读取简历！请检查前端是否正确传递 user_id")
+            logger.warning("has_file=True 但 user_id 为空，无法读取简历")
         else:
             try:
-                logger.info(f"📄 尝试读取用户 {user_id} 的简历...")
+                logger.info(f"[DEBUG] 尝试读取用户 {user_id} 的简历")
                 # 优先从 Redis 读取（与后端保持一致）
                 resume_content = get_resume_from_redis(user_id)
                 if resume_content:
-                    logger.info(f"✅ 从 Redis 读取到简历，长度: {len(resume_content)}")
+                    logger.info(f"[DEBUG] 从 Redis 读取到简历，长度: {len(resume_content)}, 前100字符: {resume_content[:100]}")
                 else:
-                    logger.info(f"Redis 中没有找到简历，尝试从文件读取...")
+                    logger.info(f"[DEBUG] Redis 中没有找到简历，尝试从文件读取")
                     # 如果 Redis 没有，尝试从文件读取
                     resume_content = get_resume_from_file(user_id)
                     if resume_content:
-                        logger.info(f"✅ 从文件读取到简历，长度: {len(resume_content)}")
+                        logger.info(f"[DEBUG] 从文件读取到简历，长度: {len(resume_content)}, 前100字符: {resume_content[:100]}")
 
                 if resume_content:
                     # 将简历内容添加到系统提示词
                     system_prompt += f"\n\n用户简历内容：\n{resume_content}"
                 else:
-                    logger.warning(f"❌ 用户 {user_id} 没有找到简历文件或 Redis 缓存")
+                    logger.warning(f"用户 {user_id} 没有找到简历")
             except Exception as e:
-                logger.error(f"❌ 读取简历时出错: {e}", exc_info=True)
+                logger.error(f"读取简历时出错: {e}", exc_info=True)
 
     # 加载用户画像（如果存在）
     user_profile = None
