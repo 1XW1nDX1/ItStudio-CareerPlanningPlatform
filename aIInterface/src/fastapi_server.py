@@ -498,36 +498,43 @@ async def websocket_chat(
                 )
 
                 full_response = ""
+                display_buffer = ""  # 用于发送给前端的缓冲区
                 in_update_block = False  # 标记是否在更新指令块内
-                update_buffer = ""  # 缓存更新指令内容
 
                 async for chunk in stream:
                     if chunk.choices[0].delta.content:
                         content = chunk.choices[0].delta.content
                         full_response += content
+                        display_buffer += content
 
-                        # 检测更新指令的开始和结束
-                        if "[UPDATE_RESUME]" in content:
-                            in_update_block = True
-                            update_buffer += content
-                            # 只发送指令之前的内容
-                            before_tag = content.split("[UPDATE_RESUME]")[0]
-                            if before_tag:
-                                await websocket.send_text(before_tag)
-                        elif "[/UPDATE_RESUME]" in content:
-                            in_update_block = False
-                            update_buffer += content
-                            # 只发送指令之后的内容
-                            after_tag = content.split("[/UPDATE_RESUME]")[-1]
-                            if after_tag:
-                                await websocket.send_text(after_tag)
-                            update_buffer = ""
-                        elif in_update_block:
-                            # 在更新指令块内，不发送给前端
-                            update_buffer += content
-                        else:
-                            # 正常内容，发送给前端
-                            await websocket.send_text(content)
+                        # 检查缓冲区中是否包含完整的更新指令
+                        while "[UPDATE_RESUME]" in display_buffer:
+                            # 找到指令开始位置
+                            start_idx = display_buffer.index("[UPDATE_RESUME]")
+
+                            # 发送指令之前的内容
+                            if start_idx > 0:
+                                await websocket.send_text(display_buffer[:start_idx])
+
+                            # 检查是否有完整的指令结束标记
+                            if "[/UPDATE_RESUME]" in display_buffer:
+                                end_idx = display_buffer.index("[/UPDATE_RESUME]") + len("[/UPDATE_RESUME]")
+                                # 移除整个指令块
+                                display_buffer = display_buffer[end_idx:]
+                            else:
+                                # 指令未完成，保留在缓冲区等待下一个 chunk
+                                display_buffer = display_buffer[start_idx:]
+                                break
+
+                        # 如果缓冲区中没有指令标记，发送内容
+                        if "[UPDATE_RESUME]" not in display_buffer and "[/UPDATE_RESUME]" not in display_buffer:
+                            if display_buffer:
+                                await websocket.send_text(display_buffer)
+                                display_buffer = ""
+
+                # 发送剩余的缓冲区内容（如果有）
+                if display_buffer and "[UPDATE_RESUME]" not in display_buffer:
+                    await websocket.send_text(display_buffer)
 
                 # 添加完整回复到对话历史
                 conversation_history.append({"role": "assistant", "content": full_response})
