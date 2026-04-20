@@ -8,6 +8,8 @@ import asyncio
 from pathlib import Path
 from openai import AsyncOpenAI
 import logging
+import PyPDF2
+from docx import Document
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -37,6 +39,14 @@ LOCAL_MODEL = os.getenv("LOCAL_MODEL", "qwen2")
 # 当前使用的模型类型：external 或 local
 MODEL_TYPE = os.getenv("MODEL_TYPE", "external")
 
+# 文件存储路径（与后端保持一致）
+FILE_STORAGE_PATH = Path(os.getenv("FILE_STORAGE_PATH", "/root/temp/saveFileTest"))
+
+# Redis 配置（用于读取缓存的简历文本）
+REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
+REDIS_DB = int(os.getenv("REDIS_DB", "0"))
+
 # 路径配置
 BASE_DIR = Path(__file__).parent.parent
 PROMPT_DIR = BASE_DIR / "prompt"
@@ -63,6 +73,58 @@ def get_client() -> AsyncOpenAI:
 def get_model_name() -> str:
     """返回当前使用的模型名称"""
     return LOCAL_MODEL if MODEL_TYPE == "local" else EXTERNAL_MODEL
+
+# ===== 数据库工具函数 =====
+def get_resume_from_redis(user_id: str) -> Optional[str]:
+    """从 Redis 读取用户的简历文本缓存（与后端保持一致）"""
+    try:
+        import redis
+        r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, decode_responses=True)
+        cache_key = f"resume:text:{user_id}"
+        resume_text = r.get(cache_key)
+        return resume_text
+    except Exception as e:
+        logger.error(f"Redis 读取失败: {e}")
+        return None
+
+def get_resume_from_file(user_id: str) -> Optional[str]:
+    """从磁盘读取用户的简历文件（备用方案）"""
+    try:
+        # 后端文件命名格式: resume_{accountId}.{extension}
+        for ext in ['pdf', 'docx']:
+            file_path = FILE_STORAGE_PATH / f"resume_{user_id}.{ext}"
+            if file_path.exists():
+                if ext == 'pdf':
+                    return read_pdf(file_path)
+                elif ext == 'docx':
+                    return read_docx(file_path)
+        return None
+    except Exception as e:
+        logger.error(f"文件读取失败: {e}")
+        return None
+
+def read_pdf(file_path: Path) -> str:
+    """读取PDF文件内容"""
+    try:
+        with open(file_path, 'rb') as file:
+            pdf_reader = PyPDF2.PdfReader(file)
+            text = ""
+            for page in pdf_reader.pages:
+                text += page.extract_text() + "\n"
+            return text.strip()
+    except Exception as e:
+        logger.error(f"读取PDF文件失败: {e}")
+        return ""
+
+def read_docx(file_path: Path) -> str:
+    """读取DOCX文件内容"""
+    try:
+        doc = Document(file_path)
+        text = "\n".join([paragraph.text for paragraph in doc.paragraphs])
+        return text.strip()
+    except Exception as e:
+        logger.error(f"读取DOCX文件失败: {e}")
+        return ""
 
 # ===== 数据模型 =====
 class ChatSession(BaseModel):
@@ -244,6 +306,26 @@ async def websocket_chat(
     # 选择对应的提示词
     agent_type = "Agent01" if has_file else "Agent02"
     system_prompt = load_prompt(agent_type)
+
+    # 如果用户上传了简历，读取简历内容
+    resume_content = None
+    if has_file and user_id:
+        try:
+            # 优先从 Redis 读取（与后端保持一致）
+            resume_content = get_resume_from_redis(user_id)
+
+            # 如果 Redis 没有，尝试从文件读取
+            if not resume_content:
+                resume_content = get_resume_from_file(user_id)
+
+            if resume_content:
+                logger.info(f"成功读取用户 {user_id} 的简历，长度: {len(resume_content)}")
+                # 将简历内容添加到系统提示词
+                system_prompt += f"\n\n用户简历内容：\n{resume_content}"
+            else:
+                logger.warning(f"用户 {user_id} 没有找到简历")
+        except Exception as e:
+            logger.error(f"读取简历时出错: {e}")
 
     # 加载用户画像（如果存在）
     user_profile = None
