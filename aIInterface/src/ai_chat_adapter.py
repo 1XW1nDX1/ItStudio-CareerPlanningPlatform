@@ -20,25 +20,21 @@ class AIChatAdapter:
 
     def get_new_chat_uuid(self) -> Optional[str]:
         """获取新的聊天UUID"""
-        if not self.token:
-            raise ValueError("Token未设置，请先登录")
-
-        headers = {"Authorization": f"Bearer {self.token}"}
-        response = requests.get(f"{self.base_url}/api/v1/ai-chat/new-chat", headers=headers)
+        response = requests.get(f"{self.base_url}/api/v1/ai-chat/new-chat")
 
         if response.status_code == 200:
-            result = response.json()
-            if result.get("code") == 200:
-                self.uuid = result.get("data")
-                return self.uuid
+            self.uuid = response.json()
+            return self.uuid
         return None
 
-    async def connect_websocket(self, on_message: Callable[[str], None]):
+    async def connect_websocket(self, on_message: Callable[[str], None], has_file: bool = False, user_id: Optional[str] = None):
         """连接WebSocket并接收AI回复"""
         if not self.uuid:
             raise ValueError("UUID未设置，请先调用get_new_chat_uuid()")
 
-        ws_endpoint = f"{self.ws_url}/ws/v1/ai-chat?uuid={self.uuid}"
+        ws_endpoint = f"{self.ws_url}/ws/v1/ai-chat?uuid={self.uuid}&has_file={str(has_file).lower()}"
+        if user_id:
+            ws_endpoint += f"&user_id={user_id}"
 
         async with websockets.connect(ws_endpoint) as websocket:
             print(f"WebSocket已连接: {ws_endpoint}")
@@ -50,12 +46,14 @@ class AIChatAdapter:
         """通过WebSocket发送消息"""
         await websocket.send(message)
 
-    async def chat_session(self, on_message: Callable[[str], None]):
+    async def chat_session(self, on_message: Callable[[str], None], has_file: bool = False, user_id: Optional[str] = None):
         """创建聊天会话"""
         if not self.uuid:
             raise ValueError("UUID未设置，请先调用get_new_chat_uuid()")
 
-        ws_endpoint = f"{self.ws_url}/ws/v1/ai-chat?uuid={self.uuid}"
+        ws_endpoint = f"{self.ws_url}/ws/v1/ai-chat?uuid={self.uuid}&has_file={str(has_file).lower()}"
+        if user_id:
+            ws_endpoint += f"&user_id={user_id}"
 
         async with websockets.connect(ws_endpoint) as websocket:
             print(f"聊天会话已建立: {ws_endpoint}")
@@ -83,11 +81,7 @@ class AIChatAdapter:
 
 def example_usage():
     """使用示例"""
-    adapter = AIChatAdapter()
-
-    # 假设已经通过登录获取了token
-    token = "your_token_here"
-    adapter.set_token(token)
+    adapter = AIChatAdapter(base_url="http://localhost:8002", ws_url="ws://localhost:8002")
 
     # 获取新的聊天UUID
     uuid = adapter.get_new_chat_uuid()
@@ -95,10 +89,10 @@ def example_usage():
 
     # 定义消息处理函数
     def handle_message(message: str):
-        print(f"AI: {message}")
+        print(f"AI: {message}", end="", flush=True)
 
-    # 启动聊天会话
-    asyncio.run(adapter.chat_session(handle_message))
+    # 启动聊天会话（has_file=False表示使用Agent02，user_id可选）
+    asyncio.run(adapter.chat_session(handle_message, has_file=False, user_id="test_user"))
 
 
 if __name__ == "__main__":
