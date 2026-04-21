@@ -26,6 +26,22 @@ const Profile: React.FC = () => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
+    // 定时轮询更新简历数据（当处于 ready 状态且有对话时）
+    useEffect(() => {
+        if (currentStatus !== 'ready' || messages.length === 0) return;
+
+        const pollInterval = setInterval(async () => {
+            try {
+                const updated = await resumeApi.getProfile();
+                setResumeData(updated);
+            } catch (e) {
+                // 忽略错误，继续轮询
+            }
+        }, 3000); // 每 3 秒轮询一次
+
+        return () => clearInterval(pollInterval);
+    }, [currentStatus, messages.length]);
+
     const handleUpload = async (file: File) => {
         setUploadError('');
         setCurrentStatus('parsing');

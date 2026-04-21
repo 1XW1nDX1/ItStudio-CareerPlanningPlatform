@@ -90,11 +90,17 @@ export function useAiChat(): UseAiChatReturn {
         // 获取用户 ID
         const userId = getAccountIdFromToken();
 
+        // 获取 token
+        const token = localStorage.getItem('token');
+
         // 构建 WebSocket URL
         let wsUrl = `${WS_BASE}/ws/v1/ai-chat?uuid=${encodeURIComponent(uuid)}`;
         wsUrl += `&has_file=${hasFile}`;
         if (userId !== null) {
             wsUrl += `&user_id=${userId}`;
+        }
+        if (token) {
+            wsUrl += `&token=${encodeURIComponent(token)}`;
         }
 
         const ws = new WebSocket(wsUrl);
