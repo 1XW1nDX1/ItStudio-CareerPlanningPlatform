@@ -48,7 +48,7 @@ const GlobalConfigFab: React.FC = () => {
     const [config, setConfig] = useState<Config>(loadConfig);
     const wrapperRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => { applyConfig(config); }, []);
+    useEffect(() => { applyConfig(config); }, [config]);
 
     const update = useCallback((patch: Partial<Config>) => {
         setConfig(prev => {
