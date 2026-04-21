@@ -39,6 +39,13 @@ export function useAiChat(): UseAiChatReturn {
     /** 保存 hasFile 状态用于重连 */
     const hasFileRef = useRef(false);
 
+    const stopHeartbeat = useCallback(() => {
+        if (heartbeatTimer.current) {
+            clearInterval(heartbeatTimer.current);
+            heartbeatTimer.current = null;
+        }
+    }, []);
+
     /* ----- 心跳 ----- */
     const startHeartbeat = useCallback(() => {
         stopHeartbeat();
@@ -47,15 +54,9 @@ export function useAiChat(): UseAiChatReturn {
                 wsRef.current.send(JSON.stringify({ type: 'ping' }));
             }
         }, HEARTBEAT_INTERVAL);
-    }, []);
+    }, [stopHeartbeat]);
 
-    const stopHeartbeat = useCallback(() => {
-        if (heartbeatTimer.current) {
-            clearInterval(heartbeatTimer.current);
-            heartbeatTimer.current = null;
-        }
-    }, []);
-
+    const connectWsRef = useRef<((hasFile?: boolean) => void) | undefined>(undefined);
     /* ----- 核心连接 ----- */
     const connectWs = useCallback(async (hasFile: boolean = false) => {
         // 如果已经在连接或已连接，先断开再重连（允许切换 hasFile 状态）
@@ -155,10 +156,15 @@ export function useAiChat(): UseAiChatReturn {
             if (!intentionalClose.current && reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS) {
                 const delay = Math.min(RECONNECT_BASE_DELAY * 2 ** reconnectAttempts.current, MAX_RECONNECT_DELAY);
                 reconnectAttempts.current += 1;
-                reconnectTimer.current = setTimeout(() => connectWs(hasFileRef.current), delay);
+
+                reconnectTimer.current = setTimeout(() => connectWsRef.current?.(hasFileRef.current), delay);
             }
         };
     }, [startHeartbeat, stopHeartbeat]);
+
+    useEffect(() => {
+        connectWsRef.current = connectWs;
+    }, [connectWs]);
 
     /* ----- 发送消息 ----- */
     const sendMessage = useCallback((text: string) => {

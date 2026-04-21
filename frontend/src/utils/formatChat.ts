@@ -16,7 +16,7 @@ export function formatChatContent(raw: string): string {
 
     // 1. 提取围栏代码块（```lang\n...\n```）
     const codeBlocks: string[] = [];
-    let text = raw.replace(/```(\w*)\n([\s\S]*?)```/g, (_match, lang, code) => {
+    const text = raw.replace(/```(\w*)\n([\s\S]*?)```/g, (_match, lang, code) => {
         const idx = codeBlocks.length;
         const langLabel = lang ? `<span class="code-lang">${escapeHtml(lang)}</span>` : '';
         codeBlocks.push(
